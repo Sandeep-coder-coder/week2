@@ -1,104 +1,92 @@
 import java.util.*;
 public class week2 {
-    static class Transaction {
-        int id;
-        int amount;
-        String merchant;
-        int time;
-        Transaction(int id,int amount,String merchant,int time){
-            this.id=id;
-            this.amount=amount;
-            this.merchant=merchant;
-            this.time=time;
+    static int L1_SIZE = 10000;
+    static int L2_SIZE = 100000;
+    static LinkedHashMap<String,String> L1 = new LinkedHashMap<String,String>(L1_SIZE,0.75f,true){
+        protected boolean removeEldestEntry(Map.Entry<String,String> e){
+            return size()>L1_SIZE;
         }
-    }
-    static List<Transaction> transactions=new ArrayList<>();
-    public static void findTwoSum(int target){
-        HashMap<Integer,Transaction> map=new HashMap<>();
-        for(Transaction t:transactions){
-            int complement=target-t.amount;
-            if(map.containsKey(complement)){
-                Transaction t2=map.get(complement);
-                System.out.println("Pair Found: ("+t2.id+", "+t.id+")");
-                return;
+    };
+    static LinkedHashMap<String,String> L2 = new LinkedHashMap<String,String>(L2_SIZE,0.75f,true){
+        protected boolean removeEldestEntry(Map.Entry<String,String> e){
+            return size()>L2_SIZE;
+        }
+    };
+    static HashMap<String,String> database = new HashMap<>();
+    static HashMap<String,Integer> accessCount = new HashMap<>();
+    static int L1hits=0,L2hits=0,L3hits=0;
+    public static String getVideo(String id){
+        if(L1.containsKey(id)){
+            L1hits++;
+            accessCount.put(id,accessCount.getOrDefault(id,0)+1);
+            System.out.println("L1 Cache HIT (0.5ms)");
+            return L1.get(id);
+        }
+        if(L2.containsKey(id)){
+            L2hits++;
+            accessCount.put(id,accessCount.getOrDefault(id,0)+1);
+            System.out.println("L1 MISS → L2 HIT (5ms)");
+            String data=L2.get(id);
+            if(accessCount.get(id)>2){
+                L1.put(id,data);
+                System.out.println("Promoted to L1");
             }
-            map.put(t.amount,t);
+            return data;
         }
-        System.out.println("No pair found");
+        if(database.containsKey(id)){
+            L3hits++;
+            System.out.println("L1 MISS → L2 MISS → L3 Database HIT (150ms)");
+            String data=database.get(id);
+            L2.put(id,data);
+            accessCount.put(id,1);
+            return data;
+        }
+        System.out.println("Video not found");
+        return null;
     }
-    public static void findTwoSumTimeWindow(int target,int window){
-        HashMap<Integer,Transaction> map=new HashMap<>();
-        for(Transaction t:transactions){
-            int complement=target-t.amount;
-            if(map.containsKey(complement)){
-                Transaction t2=map.get(complement);
-                if(Math.abs(t.time-t2.time)<=window){
-                    System.out.println("Pair within time window: ("+t2.id+", "+t.id+")");
-                    return;
-                }
-            }
-            map.put(t.amount,t);
-        }
-        System.out.println("No pair in time window");
+    public static void addVideo(String id,String data){
+        database.put(id,data);
     }
-    public static void detectDuplicates(){
-        HashMap<String,List<Transaction>> map=new HashMap<>();
-        for(Transaction t:transactions){
-            String key=t.amount+"-"+t.merchant;
-            map.putIfAbsent(key,new ArrayList<>());
-            map.get(key).add(t);
-        }
-        for(String key:map.keySet()){
-            if(map.get(key).size()>1){
-                System.out.println("Duplicate transactions: "+map.get(key).size()+" for "+key);
-            }
-        }
-    }
-    public static void findKSum(int k,int target){
-        int n=transactions.size();
-        int[] arr=new int[n];
-        for(int i=0;i<n;i++) arr[i]=transactions.get(i).amount;
-        for(int i=0;i<n;i++){
-            for(int j=i+1;j<n;j++){
-                for(int l=j+1;l<n;l++){
-                    if(k==3 && arr[i]+arr[j]+arr[l]==target){
-                        System.out.println("K-Sum Found: ("+
-                                transactions.get(i).id+", "+
-                                transactions.get(j).id+", "+
-                                transactions.get(l).id+")");
-                        return;
-                    }
-                }
-            }
-        }
-        System.out.println("No K-Sum found");
+    public static void getStatistics(){
+        int total=L1hits+L2hits+L3hits;
+        double l1rate=(total==0)?0:(L1hits*100.0)/total;
+        double l2rate=(total==0)?0:(L2hits*100.0)/total;
+        double l3rate=(total==0)?0:(L3hits*100.0)/total;
+        System.out.println("L1 Hit Rate: "+l1rate+"%");
+        System.out.println("L2 Hit Rate: "+l2rate+"%");
+        System.out.println("L3 Hit Rate: "+l3rate+"%");
+        System.out.println("Total Requests: "+total);
     }
     public static void main(String[] args){
         Scanner sc=new Scanner(System.in);
-        System.out.print("Enter number of transactions: ");
+        System.out.print("Enter number of videos in database: ");
         int n=sc.nextInt();
+        sc.nextLine();
         for(int i=0;i<n;i++){
-            System.out.println("Transaction "+(i+1));
-            System.out.print("ID: ");
-            int id=sc.nextInt();
-            System.out.print("Amount: ");
-            int amount=sc.nextInt();
-            sc.nextLine();
-            System.out.print("Merchant: ");
-            String merchant=sc.nextLine();
-            System.out.print("Time (minutes): ");
-            int time=sc.nextInt();
-            transactions.add(new Transaction(id,amount,merchant,time));
+            System.out.print("Video ID: ");
+            String id=sc.nextLine();
+            System.out.print("Video Data: ");
+            String data=sc.nextLine();
+            addVideo(id,data);
         }
-        System.out.print("Enter target for Two-Sum: ");
-        int target=sc.nextInt();
-        findTwoSum(target);
-        System.out.print("Enter time window (minutes): ");
-        int window=sc.nextInt();
-        findTwoSumTimeWindow(target,window);
-        detectDuplicates();
-        System.out.print("Enter target for K-Sum: ");
-        int ktarget=sc.nextInt();
-        findKSum(3,ktarget);
+        while(true){
+            System.out.println("\n1.Get Video");
+            System.out.println("2.Cache Statistics");
+            System.out.println("3.Exit");
+            System.out.print("Choice: ");
+            int ch=sc.nextInt();
+            sc.nextLine();
+            if(ch==1){
+                System.out.print("Enter Video ID: ");
+                String id=sc.nextLine();
+                getVideo(id);
+            }
+            else if(ch==2){
+                getStatistics();
+            }
+            else{
+                break;
+            }
+        }
     }
 }
