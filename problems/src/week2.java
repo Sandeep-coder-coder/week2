@@ -1,63 +1,53 @@
 import java.util.*;
 public class week2 {
-    static class TokenBucket {
-        int tokens;
-        int maxTokens;
-        long lastRefillTime;
-        int refillRate;
-        TokenBucket(int maxTokens, int refillRate) {
-            this.maxTokens = maxTokens;
-            this.tokens = maxTokens;
-            this.refillRate = refillRate;
-            this.lastRefillTime = System.currentTimeMillis();
+    static class TrieNode {
+        HashMap<Character, TrieNode> children = new HashMap<>();
+        boolean isEnd = false;
+    }
+    static TrieNode root = new TrieNode();
+    static HashMap<String,Integer> frequency = new HashMap<>();
+    public static void addQuery(String query) {
+        TrieNode node = root;
+        for(char c : query.toCharArray()) {
+            node.children.putIfAbsent(c,new TrieNode());
+            node = node.children.get(c);
         }
-        void refill() {
-            long now = System.currentTimeMillis();
-            long elapsed = (now - lastRefillTime) / 1000;
-            if (elapsed > 0) {
-                int refillTokens = (int) (elapsed * refillRate);
-                tokens = Math.min(maxTokens, tokens + refillTokens);
-                lastRefillTime = now;
-            }
-        }
-        boolean allowRequest() {
-            refill();
-            if (tokens > 0) {
-                tokens--;
-                return true;
-            }
-            return false;
-        }
-        int getRemaining() {
-            refill();
-            return tokens;
+        node.isEnd = true;
+        frequency.put(query,frequency.getOrDefault(query,0)+1);
+    }
+    public static void collectQueries(TrieNode node,String prefix,List<String> results) {
+        if(node.isEnd) results.add(prefix);
+        for(char c : node.children.keySet()) {
+            collectQueries(node.children.get(c),prefix+c,results);
         }
     }
-    static HashMap<String, TokenBucket> clients = new HashMap<>();
-    static final int LIMIT = 1000;
-    static final int REFILL_RATE = 1000 / 3600;
-    public static String checkRateLimit(String clientId) {
-        clients.putIfAbsent(clientId, new TokenBucket(LIMIT, REFILL_RATE));
-        TokenBucket bucket = clients.get(clientId);
-        if (bucket.allowRequest()) {
-            return "Allowed (" + bucket.getRemaining() + " requests remaining)";
-        } else {
-            return "Denied (Rate limit exceeded)";
+    public static List<String> search(String prefix) {
+        TrieNode node = root;
+        for(char c : prefix.toCharArray()) {
+            if(!node.children.containsKey(c)) return new ArrayList<>();
+            node = node.children.get(c);
         }
+        List<String> results = new ArrayList<>();
+        collectQueries(node,prefix,results);
+        results.sort((a,b)->frequency.get(b)-frequency.get(a));
+        if(results.size()>10) return results.subList(0,10);
+        return results;
     }
-    public static String getRateLimitStatus(String clientId) {
-        TokenBucket bucket = clients.get(clientId);
-        if (bucket == null) {
-            return "No usage yet";
-        }
-        int used = LIMIT - bucket.getRemaining();
-        return "{used: " + used + ", limit: " + LIMIT + "}";
+    public static void updateFrequency(String query) {
+        frequency.put(query,frequency.getOrDefault(query,0)+1);
     }
     public static void main(String[] args) {
-        String client = "abc123";
-        System.out.println(checkRateLimit(client));
-        System.out.println(checkRateLimit(client));
-        System.out.println(checkRateLimit(client));
-        System.out.println(getRateLimitStatus(client));
+        addQuery("java tutorial");
+        addQuery("javascript");
+        addQuery("java download");
+        addQuery("java tutorial");
+        addQuery("java 21 features");
+        List<String> suggestions = search("jav");
+        System.out.println("Suggestions:");
+        for(String s : suggestions) {
+            System.out.println(s + " (" + frequency.get(s) + " searches)");
+        }
+        updateFrequency("java 21 features");
+        System.out.println("Updated Frequency: " + frequency.get("java 21 features"));
     }
 }
