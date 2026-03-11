@@ -33,21 +33,22 @@ public class week2 {
         if(results.size()>10) return results.subList(0,10);
         return results;
     }
-    public static void updateFrequency(String query) {
-        frequency.put(query,frequency.getOrDefault(query,0)+1);
-    }
     public static void main(String[] args) {
-        addQuery("java tutorial");
-        addQuery("javascript");
-        addQuery("java download");
-        addQuery("java tutorial");
-        addQuery("java 21 features");
-        List<String> suggestions = search("jav");
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter number of queries to store: ");
+        int n = sc.nextInt();
+        sc.nextLine();
+        for(int i=0;i<n;i++) {
+            System.out.print("Enter query: ");
+            String q = sc.nextLine();
+            addQuery(q);
+        }
+        System.out.print("Enter prefix to search: ");
+        String prefix = sc.nextLine();
+        List<String> suggestions = search(prefix);
         System.out.println("Suggestions:");
         for(String s : suggestions) {
             System.out.println(s + " (" + frequency.get(s) + " searches)");
         }
-        updateFrequency("java 21 features");
-        System.out.println("Updated Frequency: " + frequency.get("java 21 features"));
     }
 }
