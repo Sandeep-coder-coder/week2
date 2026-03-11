@@ -1,54 +1,71 @@
 import java.util.*;
 public class week2 {
-    static class TrieNode {
-        HashMap<Character, TrieNode> children = new HashMap<>();
-        boolean isEnd = false;
+    static int SIZE = 500;
+    static String[] spots = new String[SIZE];
+    static long[] entryTime = new long[SIZE];
+    public static int hash(String plate) {
+        return Math.abs(plate.hashCode()) % SIZE;
     }
-    static TrieNode root = new TrieNode();
-    static HashMap<String,Integer> frequency = new HashMap<>();
-    public static void addQuery(String query) {
-        TrieNode node = root;
-        for(char c : query.toCharArray()) {
-            node.children.putIfAbsent(c,new TrieNode());
-            node = node.children.get(c);
+    public static void parkVehicle(String plate) {
+        int index = hash(plate);
+        int probes = 0;
+        while(spots[index] != null) {
+            index = (index + 1) % SIZE;
+            probes++;
         }
-        node.isEnd = true;
-        frequency.put(query,frequency.getOrDefault(query,0)+1);
+        spots[index] = plate;
+        entryTime[index] = System.currentTimeMillis();
+        System.out.println("Assigned spot #" + index + " (" + probes + " probes)");
     }
-    public static void collectQueries(TrieNode node,String prefix,List<String> results) {
-        if(node.isEnd) results.add(prefix);
-        for(char c : node.children.keySet()) {
-            collectQueries(node.children.get(c),prefix+c,results);
+    public static void exitVehicle(String plate) {
+        for(int i=0;i<SIZE;i++) {
+            if(plate.equals(spots[i])) {
+                long duration = (System.currentTimeMillis() - entryTime[i]) / 1000;
+                double fee = duration * 0.05;
+                spots[i] = null;
+                System.out.println("Spot #" + i + " freed");
+                System.out.println("Duration: " + duration + " seconds");
+                System.out.println("Fee: $" + fee);
+                return;
+            }
         }
+        System.out.println("Vehicle not found");
     }
-    public static List<String> search(String prefix) {
-        TrieNode node = root;
-        for(char c : prefix.toCharArray()) {
-            if(!node.children.containsKey(c)) return new ArrayList<>();
-            node = node.children.get(c);
+    public static void getStatistics() {
+        int occupied = 0;
+        for(String s : spots) {
+            if(s != null) occupied++;
         }
-        List<String> results = new ArrayList<>();
-        collectQueries(node,prefix,results);
-        results.sort((a,b)->frequency.get(b)-frequency.get(a));
-        if(results.size()>10) return results.subList(0,10);
-        return results;
+        double occupancy = (occupied * 100.0) / SIZE;
+        System.out.println("Occupancy: " + occupancy + "%");
+        System.out.println("Occupied spots: " + occupied);
     }
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        System.out.print("Enter number of queries to store: ");
-        int n = sc.nextInt();
-        sc.nextLine();
-        for(int i=0;i<n;i++) {
-            System.out.print("Enter query: ");
-            String q = sc.nextLine();
-            addQuery(q);
-        }
-        System.out.print("Enter prefix to search: ");
-        String prefix = sc.nextLine();
-        List<String> suggestions = search(prefix);
-        System.out.println("Suggestions:");
-        for(String s : suggestions) {
-            System.out.println(s + " (" + frequency.get(s) + " searches)");
+        while(true) {
+            System.out.println("\n1.Park Vehicle");
+            System.out.println("2.Exit Vehicle");
+            System.out.println("3.Get Statistics");
+            System.out.println("4.Exit");
+            System.out.print("Choice: ");
+            int ch = sc.nextInt();
+            sc.nextLine();
+            if(ch == 1) {
+                System.out.print("Enter License Plate: ");
+                String plate = sc.nextLine();
+                parkVehicle(plate);
+            }
+            else if(ch == 2) {
+                System.out.print("Enter License Plate: ");
+                String plate = sc.nextLine();
+                exitVehicle(plate);
+            }
+            else if(ch == 3) {
+                getStatistics();
+            }
+            else {
+                break;
+            }
         }
     }
 }
